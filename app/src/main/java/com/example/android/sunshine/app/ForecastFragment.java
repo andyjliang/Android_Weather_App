@@ -1,5 +1,6 @@
 package com.example.android.sunshine.app;
 
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -29,6 +30,12 @@ import java.util.List;
 public class ForecastFragment extends Fragment {
 
     private ArrayAdapter<String> mForecastAdapter;
+    final String FORECAST_BASE_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
+    final String QUERY_PARAM = "q";
+    final String FORMAT_PARAM = "mode";
+    final String UNITS_PARAM = "units";
+    final String DAYS_PARAM = "cnt";
+    final String APPID_PARAM = "APPID";
 
     public ForecastFragment() {
     }
@@ -50,6 +57,8 @@ public class ForecastFragment extends Fragment {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
+            FetchWeatherTask myFetchWeatherTask = new FetchWeatherTask();
+            myFetchWeatherTask.execute("94131");
             return true;
         }
 
@@ -91,21 +100,48 @@ public class ForecastFragment extends Fragment {
         return rootView;
     }
 
-    public class FetchWeatherTask extends AsyncTask<Void, Void, Void> {
+    public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
+
 
         @Override
-        protected Void doInBackground(Void... urls) {
+        protected Void doInBackground(String... params) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
             // Will contain the raw JSON response as a string.
             String forecastJsonStr = null;
 
+            // variables for query
+            String mode = "json";
+            String unit = "metric";
+            Integer days = 7;
+
             try {
                 // Construct the URL for the OpenWeatherMap query
                 // Possible parameters are avaiable at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
-                URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94131&mode=json&units=metric&cnt=7&APPID=b246dcd31636a0a8010192b7c27a3768");
+//                Uri.Builder builder = new Uri.Builder();
+//                builder.scheme("http")
+//                        .authority("api.openweathermap.org")
+//                        .appendPath("data")
+//                        .appendPath("2.5")
+//                        .appendPath("forecast")
+//                        .appendPath("daily")
+//                        .appendQueryParameter("APPID", "b246dcd31636a0a8010192b7c27a3768")
+//                        .appendQueryParameter("q", params[0])
+//                        .appendQueryParameter("mode", "json")
+//                        .appendQueryParameter("units", "metric")
+//                        .appendQueryParameter("cnt", "7");
+
+                Uri uri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                        .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
+                        .appendQueryParameter(QUERY_PARAM, params[0])
+                        .appendQueryParameter(FORMAT_PARAM, mode)
+                        .appendQueryParameter(UNITS_PARAM, unit)
+                        .appendQueryParameter(DAYS_PARAM, Integer.toString(days))
+                        .build();
+                URL url = new URL(uri.toString());
+//                URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94131&mode=json&units=metric&cnt=7&APPID=b246dcd31636a0a8010192b7c27a3768");
 
                 // Create the request to OpenWeatherMap, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -126,6 +162,7 @@ public class ForecastFragment extends Fragment {
                     // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
                     // But it does make debugging a *lot* easier if you print out the completed
                     // buffer for debugging.
+                    Log.e("ForecastFragment", line);
                     buffer.append(line + "\n");
                 }
 
